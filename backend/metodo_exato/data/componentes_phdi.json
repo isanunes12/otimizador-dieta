@@ -1,0 +1,18 @@
+[
+    {"grupo": "nozes_amendoim", "limite": 11.6},
+    {"grupo": "leguminosas", "limite": 11.3},
+    {"grupo": "frutas", "limite": 5.0},
+    {"grupo": "veg_outros", "limite": 3.1},
+    {"grupo": "cereais_integrais", "limite": 32.4},
+
+    {"grupo": "ovos", "limite_otimo": 0.8, "limite_superior": 1.5},
+    {"grupo": "peixes", "limite_otimo": 1.6, "limite_superior": 5.7},
+    {"grupo": "batatas_tuber", "limite_otimo": 1.6, "limite_superior": 3.1},
+    {"grupo": "laticinios", "limite_otimo": 6.1, "limite_superior": 12.2},
+    {"grupo": "oleos_insat", "limite_otimo": 16.5, "limite_superior": 30.7},
+
+    {"grupo": "carne_vermelha", "limite": 2.4},
+    {"grupo": "aves_frango", "limite": 5.0},
+    {"grupo": "gord_animal", "limite": 1.4},
+    {"grupo": "acucares", "limite": 4.8}
+]

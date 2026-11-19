@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: ./backend
+    # 127.0.0.1: a API só fica acessível no seu computador, não na rede
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ./backend:/app
+      - ./secrets:/secrets:ro
+    environment:
+      - FLASK_DEBUG=${FLASK_DEBUG:-1}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/serviceAccountKey.json
+      - CORS_ORIGINS=http://localhost:5173
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:5000
+      - VITE_FIREBASE_API_KEY=${FIREBASE_WEB_API_KEY}
+    depends_on:
+      - backend

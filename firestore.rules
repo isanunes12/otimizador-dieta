@@ -1,0 +1,10 @@
+rules_version = '2';
+// O frontend nunca acessa o Firestore diretamente: tudo passa pela API Flask,
+// que usa o Admin SDK (que ignora estas regras). Então bloqueamos todo acesso de cliente.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
