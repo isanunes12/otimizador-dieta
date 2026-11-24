@@ -346,26 +346,64 @@ details[open] summary {
 
 .bar {
   position: relative;
-  height: 12px;
+  height: 14px;
+  margin: 0 7px;
   background: #f1f3f5;
-  border-radius: 6px;
-  overflow: hidden;
+  border-radius: 7px;
 }
 
 .bar-range {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(21, 128, 61, 0.22);
+  background: #c7ccd3;
+  border-radius: 7px;
 }
 
-.bar-fill {
+/* Ponto do consumo: vermelho acima, verde dentro, azul abaixo do intervalo */
+.bar-dot {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 0;
-  background: #2563eb;
-  border-radius: 3px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transform: translate(-50%, -50%);
+}
+
+.bar-dot.acima { background: #dc2626; }
+.bar-dot.dentro { background: #16a34a; }
+.bar-dot.abaixo { background: #2563eb; }
+
+.bar-dot.static {
+  position: static;
+  display: inline-block;
+  transform: none;
+  vertical-align: middle;
+}
+
+.bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 4px 0 10px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.bar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar-legend-range {
+  display: inline-block;
+  width: 24px;
+  height: 10px;
+  border-radius: 5px;
+  background: #c7ccd3;
 }
 
 /* ---------- KPIs ---------- */
@@ -592,3 +630,18 @@ details[open] summary {
     grid-template-columns: 1fr;
   }
 }
+
+/* Tipo do componente no PHDI */
+.tipo-selo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tipo-selo.adequacao { background: #dcfce7; color: #166534; }
+.tipo-selo.otimo { background: #dbeafe; color: #1e40af; }
+.tipo-selo.razao { background: #f3e8ff; color: #6b21a8; }
+.tipo-selo.moderacao { background: #ffedd5; color: #9a3412; }
+.tipo-selo.fora { background: #f1f5f9; color: #475569; }

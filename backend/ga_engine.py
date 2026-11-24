@@ -11,8 +11,7 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
-from ClasseAlgoritmoGenetico import AlgoritmoGenetico
-from ClasseFerramentas import Ferramentas
+from metodo_ag import AlgoritmoGenetico, Ferramentas
 
 # O AG usa o módulo global `random`; o lock garante que execuções simultâneas
 # não embaralhem a semente umas das outras.

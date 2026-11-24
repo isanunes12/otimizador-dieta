@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { ConsumoIntervalo, LegendaIntervalo } from './ConsumoIntervalo';
 import type { ExactResult, ExactSolution } from '../types/diet';
-import { brl, fmt } from '../utils';
+import { brl, fmt, tipoPorChave } from '../utils';
+import { SeloTipo } from './TipoComponente';
 import { ticks } from './LineChart';
 
 const W = 640;
@@ -150,16 +152,18 @@ export function ExactResultView({ exact }: { exact?: ExactResult | null }) {
       <section className="card">
         <h3>Composição da dieta: solução {selecionada + 1} de {solucoes.length}</h3>
         <p className="hint">
-          A barra mostra as kcal do componente; a faixa clara é o intervalo de aceitabilidade cultural. A coluna Desvio indica quantas kcal
+          O ponto mostra as kcal do componente e a faixa cinza é o intervalo de aceitabilidade cultural. A coluna Desvio indica quantas kcal
           ficaram abaixo (−) ou acima (+) desse intervalo.
         </p>
+        <LegendaIntervalo />
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
+                <th>Tipo</th>
                 <th>Componente</th>
                 <th className="num">kcal</th>
-                <th className="bar-col">Consumo × faixa cultural</th>
+                <th className="bar-col">Consumo × intervalo cultural</th>
                 <th className="num">% VCT</th>
                 <th className="num">PHDI</th>
                 <th className="num">Aceitab.</th>
@@ -172,19 +176,11 @@ export function ExactResultView({ exact }: { exact?: ExactResult | null }) {
                 const desvio = i.gap_lower > 0.005 ? `−${fmt(i.gap_lower, 1)}` : i.gap_upper > 0.005 ? `+${fmt(i.gap_upper, 1)}` : null;
                 return (
                   <tr key={i.key} className={desvio ? 'penalized' : ''}>
+                    <td><SeloTipo tipo={tipoPorChave(i.key)} /></td>
                     <td>{i.group_pt}</td>
                     <td className="num">{fmt(i.calories, 1)}</td>
                     <td className="bar-col">
-                      <div className="bar">
-                        <div
-                          className="bar-range"
-                          style={{
-                            left: `${(i.acceptability_min / maxKcal) * 100}%`,
-                            width: `${Math.max(0.5, ((i.acceptability_max - i.acceptability_min) / maxKcal) * 100)}%`,
-                          }}
-                        />
-                        <div className="bar-fill" style={{ width: `${(i.calories / maxKcal) * 100}%` }} />
-                      </div>
+                      <ConsumoIntervalo valor={i.calories} min={i.acceptability_min} max={i.acceptability_max} escala={maxKcal} />
                     </td>
                     <td className="num">{fmt(i.percentage, 1)}%</td>
                     <td className="num">{i.phdi_score === null ? '—' : fmt(i.phdi_score, 1)}</td>

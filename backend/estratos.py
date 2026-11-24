@@ -11,14 +11,19 @@ from typing import Dict, List
 import pandas as pd
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-# Consumo (percentis), preços e metas por extrato
-CAMINHO_CSV = os.path.join(_DIR, "banco_INA_estratificado_ag.csv")
+# Consumo (médias e percentis), preços e metas por extrato
+CAMINHO_CSV = os.path.join(_DIR, "metodo_ag", "data", "banco_estratificado_ag.csv")
 # Limites de aceitabilidade cultural (os mesmos do método exato e da tabela da orientadora):
 # % nacionais de kcal (Brasil) multiplicadas pelas kcal do PHDI de cada extrato
 CAMINHO_CSV_ACEITABILIDADE = os.path.join(_DIR, "metodo_exato", "data", "banco_INA_new_aceptability.csv")
 
 # Versão dos limites, gravada em cada execução para separar resultados antigos dos novos
-VERSAO_LIMITES = "aceitabilidade-tabela-orientadora-2026-11"
+VERSAO_LIMITES = "banco-estratificado-2026-11-23-p10-p90"
+
+# Percentis do consumo que delimitam o intervalo de busca do AG.
+# O banco atual traz p10, p20, p25, p75, p80 e p90 (não há mais p5/p95).
+PERCENTIL_MIN = "p10"
+PERCENTIL_MAX = "p90"
 
 UFS: Dict[int, str] = {
     11: "Rondônia", 12: "Acre", 13: "Amazonas", 14: "Roraima", 15: "Pará", 16: "Amapá", 17: "Tocantins",
@@ -70,7 +75,10 @@ CHAVES_ACEITABILIDADE = {
 
 @lru_cache(maxsize=1)
 def _df() -> pd.DataFrame:
-    return pd.read_csv(CAMINHO_CSV)
+    df = pd.read_csv(CAMINHO_CSV)
+    # A linha do Brasil (todas as faixas) vem com a faixa vazia; no app ela é a faixa 99
+    df["faixa_renda_per_capita"] = df["faixa_renda_per_capita"].fillna(99).astype(int)
+    return df
 
 
 @lru_cache(maxsize=1)
@@ -82,7 +90,10 @@ def _df_aceitabilidade() -> pd.DataFrame:
 
 
 def lista_extratos() -> List[dict]:
-    df = _df()
+    # Só lista extratos que também têm limites de aceitabilidade cultural
+    # (ex.: Brasil por faixa de renda existe no banco, mas não no CSV de aceitabilidade)
+    chaves = ["uf", "faixa_renda_per_capita"]
+    df = _df().merge(_df_aceitabilidade()[chaves], on=chaves)
     saida = []
     for _, linha in df[["uf", "faixa_renda_per_capita"]].iterrows():
         uf, faixa = int(linha["uf"]), int(linha["faixa_renda_per_capita"])
@@ -109,8 +120,9 @@ def metas_do_extrato(uf: int, faixa: int) -> dict:
     """Metas padrão = consumo e custo atuais da população (as mesmas usadas pelo método exato)."""
     l = _linha(uf, faixa)
     return {
-        "target_calories": round(float(l["kcal_consumo_phdi"]), 1),
-        "target_cost": round(float(l["preco_total_phdi"]), 2),
+        # Soma dos 17 componentes do AG (inclui cereais refinados; "kcal_totais_phdi" não inclui)
+        "target_calories": round(float(l["kcal_totais"]), 1),
+        "target_cost": round(float(l["preco_total"]), 2),
     }
 
 
@@ -120,24 +132,26 @@ def grupos_do_extrato(uf: int, faixa: int) -> List[dict]:
     f = lambda col: float(l[col])
 
     a = _linha(uf, faixa, _df_aceitabilidade())
-    kcal_phdi = float(l["kcal_consumo_phdi"])
+    kcal_phdi = float(l["kcal_totais"])
+    pmin = lambda g: f(f"{PERCENTIL_MIN}_{g}_kcal")
+    pmax = lambda g: f(f"{PERCENTIL_MAX}_{g}_kcal")
 
     # Intervalo de busca do AG (min_kcal, max_kcal) e preço por kcal: dados de consumo do extrato
     busca = {
-        1: (f("p5_leguminosas_kcal"), f("p95_leguminosas_kcal"), f("preco_leguminosas_por_kcal")),
-        2: (f("p5_frutas_kcal"), f("p95_frutas_kcal"), f("preco_frutas_por_kcal")),
-        3: (f("p5_veg_total_kcal"), f("p95_veg_total_kcal"), f("preco_veg_outros_por_kcal")),
-        5: (f("p5_ovos_kcal"), f("p95_ovos_kcal"), f("preco_ovos_por_kcal")),
-        7: (f("p5_batatas_tuber_kcal"), f("p95_batatas_tuber_kcal"), f("preco_batatas_tuber_por_kcal")),
-        8: (f("p5_laticinios_kcal"), f("p95_laticinios_kcal"), f("preco_laticinios_por_kcal")),
-        9: (f("p5_oleos_insat_kcal"), f("p95_oleos_insat_kcal"), f("preco_oleos_insat_por_kcal")),
-        11: (f("p5_veg_vermelho_kcal"), f("p95_veg_vermelho_kcal"), f("preco_veg_vermelho_por_kcal")),
+        1: (pmin("leguminosas"), pmax("leguminosas"), f("preco_leguminosas_por_kcal")),
+        2: (pmin("frutas"), pmax("frutas"), f("preco_frutas_por_kcal")),
+        3: (pmin("veg_totais"), pmax("veg_totais"), f("preco_veg_outros_por_kcal")),
+        5: (pmin("ovos"), pmax("ovos"), f("preco_ovos_por_kcal")),
+        7: (pmin("batatas"), pmax("batatas"), f("preco_batatas_tuber_por_kcal")),
+        8: (pmin("laticinios"), pmax("laticinios"), f("preco_laticinios_por_kcal")),
+        9: (pmin("oleos"), pmax("oleos"), f("preco_oleos_insat_por_kcal")),
+        11: (pmin("veg_verm"), pmax("veg_verm"), f("preco_veg_vermelho_por_kcal")),
         # Moderação: o AG não passa do consumo médio atual
-        12: (f("p5_carne_vermelha_kcal"), f("kcal_totais_carne_vermelha"), f("preco_carne_vermelha_por_kcal")),
-        13: (f("p5_aves_frango_kcal"), f("kcal_totais_aves_frango"), f("preco_aves_frango_por_kcal")),
-        14: (f("p5_gord_animal_kcal"), f("kcal_totais_gord_animal"), f("preco_gord_animal_por_kcal")),
-        15: (f("p5_acucares_kcal"), f("kcal_totais_acucares"), f("preco_acucares_por_kcal")),
-        16: (0.0, f("kcal_totais_cereais_refinados"), f("preco_cereais_refinados_por_kcal")),
+        12: (pmin("carnes_verm"), f("carnes_verm_kcal"), f("preco_carne_vermelha_por_kcal")),
+        13: (pmin("frango"), f("frango_kcal"), f("preco_aves_frango_por_kcal")),
+        14: (pmin("gordura"), f("gordura_kcal"), f("preco_gord_animal_por_kcal")),
+        15: (pmin("acucar"), f("acucar_kcal"), f("preco_acucares_por_kcal")),
+        16: (0.0, f("cereais_ref_kcal"), f("preco_cereais_refinados_por_kcal")),
     }
     precos_fixos = {
         0: f("preco_nozes_amendoim_por_kcal"),

@@ -1,5 +1,7 @@
 import type { RunDetail, Stratum } from '../types/diet';
-import { baixarCsvDieta, baixarCsvHistorico, brl, dataHora, fmt, rotuloExtrato } from '../utils';
+import { baixarCsvDieta, baixarCsvHistorico, brl, dataHora, fmt, rotuloExtrato, tipoPorIndice } from '../utils';
+import { SeloTipo } from './TipoComponente';
+import { ConsumoIntervalo, LegendaIntervalo } from './ConsumoIntervalo';
 import { LineChart } from './LineChart';
 
 interface Props {
@@ -116,16 +118,18 @@ export function ResultView({ run, strata, onRepeat, onDelete }: Props) {
       <section className="card">
         <h3>Composição da dieta</h3>
         <p className="hint">
-          A barra mostra as kcal do componente; a faixa clara é o intervalo de aceitabilidade cultural do extrato.
+          O ponto mostra as kcal do componente e a faixa cinza é o intervalo de aceitabilidade cultural do extrato.
           DGV e REV são proporções dos vegetais e não somam nas calorias totais.
         </p>
+        <LegendaIntervalo />
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
+                <th>Tipo</th>
                 <th>Componente</th>
                 <th className="num">kcal</th>
-                <th className="bar-col">Consumo × faixa cultural</th>
+                <th className="bar-col">Consumo × intervalo cultural</th>
                 <th className="num">% VCT</th>
                 <th className="num">PHDI</th>
                 <th className="num">Custo</th>
@@ -135,10 +139,9 @@ export function ResultView({ run, strata, onRepeat, onDelete }: Props) {
             <tbody>
               {run.items.map((i) => {
                 const proporcao = i.group === 'DGV' || i.group === 'REV';
-                const lo = Math.min(i.cultural_min, i.cultural_max);
-                const hi = Math.max(i.cultural_min, i.cultural_max);
                 return (
                   <tr key={i.phdi_index} className={i.is_penalized ? 'penalized' : ''}>
+                    <td><SeloTipo tipo={tipoPorIndice(i.phdi_index)} /></td>
                     <td>
                       {i.group_pt}
                       {i.other_vegetables_calories !== null && (
@@ -148,10 +151,7 @@ export function ResultView({ run, strata, onRepeat, onDelete }: Props) {
                     <td className="num">{fmt(i.calories, 1)}</td>
                     <td className="bar-col">
                       {!proporcao && (
-                        <div className="bar">
-                          <div className="bar-range" style={{ left: `${(lo / maxKcal) * 100}%`, width: `${Math.max(0.5, ((hi - lo) / maxKcal) * 100)}%` }} />
-                          <div className="bar-fill" style={{ width: `${(i.calories / maxKcal) * 100}%` }} />
-                        </div>
+                        <ConsumoIntervalo valor={i.calories} min={i.cultural_min} max={i.cultural_max} escala={maxKcal} />
                       )}
                       {proporcao && <small className="muted">{fmt(i.percentage, 1)}% dos vegetais</small>}
                     </td>
